@@ -6,7 +6,7 @@ GSL is a collection of tools to fully use Garmin devices without using Garmin se
 > This project is still in very early stages of development.
 
 > [!CAUTION]
-> These tools are provided "as is" without warranty of any kind. Using them can be dangerous for your device: you are the only responsible for what you are doing so be careful.
+> These tools are provided "as is" without warranty of any kind. Using them can be dangerous for your device: please be careful as you are the only responsible for what you are doing.
 
 ## Roadmap
 
