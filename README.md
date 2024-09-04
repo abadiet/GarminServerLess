@@ -23,4 +23,5 @@ Here are some interesting projects when reverse engineering Garmin's systems.
 
 - [Anvil Secure Blog](https://www.anvilsecure.com/blog/compromising-garmins-sport-watches-a-deep-dive-into-garminos-and-its-monkeyc-virtual-machine.html)
 - [Freeyourgadget](https://codeberg.org/Freeyourgadget/Gadgetbridge/issues/959)
+- [ConnectIQ Debugger](https://github.com/pzl/ciqdb)
 - and many others...
