@@ -13,7 +13,7 @@ GSL is a collection of tools to fully use Garmin devices without using Garmin se
 - [x] Download Connect IQ apps binaries (using USB)
     - It still needs a junk account for now
     - I made an add-on dedicated to this [LocalCIQ](https://addons.mozilla.org/en-US/firefox/addon/localciq/)
-- [ ] Edit Connect IQ apps settings (using USB)
+- [x] Edit Connect IQ apps settings (using USB)
 - [ ] Edit/View metrics (using USB)
 - [ ] Update devices (using USB)
 - [ ] Bye USB, Welcome Bluetooth
