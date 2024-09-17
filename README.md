@@ -8,6 +8,22 @@ GSL is a collection of tools to fully use Garmin devices without using Garmin se
 > [!CAUTION]
 > These tools are provided "as is" without warranty of any kind. Using them can be dangerous for your device: please be careful as you are the only responsible for what you are doing.
 
+
+## Usage
+
+```
+from gsl import App, CIQ
+
+# Print the device names
+print(CIQ.get_devices_names())
+
+# Download the latest Strava app and edit its settings 
+strava = App(ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d59518357")
+strava.download("fēnix® 7X Pro", "strava.PRG", session_cookie)
+strava.download_settings("fēnix® 7X Pro", "strava.SET")
+```
+
+
 ## Roadmap
 
 - [x] Download Connect IQ apps binaries (using USB)
