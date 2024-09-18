@@ -38,7 +38,7 @@ class CIQ:
         # Get the html form
         html_form = requests.get(f"https://apps.garmin.com/{locale}/appSettings2/{app_guid}/versions/{app_version}/devices/{firmware_part_number}/edit")
         if html_form.status_code != 200:
-            raise Exception(f"Failed to get the html settigns form {resp.url}: {resp.text}")
+            raise Exception(f"Failed to get the html settigns form {html_form.url}: {html_form.text}")
         html_form = html_form.text
         html_form = html_form.replace('="//', '="https://').replace('="/', '="https://apps.garmin.com/')
         html_form = html_form.replace('</head>', "<script type='text/javascript'>document.addEventListener('DOMContentLoaded', function() {let btn = document.createElement('button');btn.innerHTML = 'Validate';btn.style.width = '100%';btn.style.backgroundColor = 'lightgreen';btn.style.minHeight = '70px';btn.style.fontSize = 'large';btn.style.fontWeight = 'bold';btn.addEventListener('click', function() {const settings_str = handleFormSubmit();if (settings_str != '' && settings_str !== undefined) {const xhr = new XMLHttpRequest();xhr.open('POST', '/');xhr.addEventListener('load', function() {close();});xhr.send(settings_str);}});document.body.appendChild(btn);});</script></head>")
