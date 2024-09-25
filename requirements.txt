@@ -1,3 +1,7 @@
 requests
 http
 webbrowser
+hashlib
+enum
+os
+re

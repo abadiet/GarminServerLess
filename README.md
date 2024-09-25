@@ -12,15 +12,21 @@ GSL is a Python library fully use Garmin devices without relying on Garmin serve
 ## Usage
 
 ```
-from gsl import App, CIQ
+from gsl import Device
 
-# Print the device names
-print(CIQ.get_devices_names())
+myDevice = Device("/dev/ttyACM0")
 
-# Download the latest Strava app and edit its settings 
-strava = App(ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d59518357")
-strava.download("fēnix® 7X Pro", "strava.PRG", session_cookie)
-strava.download_settings("fēnix® 7X Pro", "strava.SET")
+# instal an app
+myDevice.install(session_cookie, ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d59518357")
+
+# get available updates
+print(myDevice.get_updates_names()) # e.g. ['Time Zone Map', 'GPS Software', 'Fenix 7 Sensor Hub']
+
+# udpate one
+myDevice.update('GPS Software')
+
+# update all
+myDevice.update()
 ```
 
 ## Reverse Engineering
@@ -36,7 +42,7 @@ GE is an old software with no significant obfuscation or high-security protectio
     - I made an add-on dedicated to this: [LocalCIQ](https://addons.mozilla.org/en-US/firefox/addon/localciq/)
 - [x] Edit Connect IQ apps settings (using USB)
 - [ ] Edit/View metrics (using USB)
-- [ ] Update devices (using USB)
+- [x] Update devices (using USB)
 - [ ] Bye USB, Welcome Bluetooth
 
 ## Related projects
