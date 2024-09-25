@@ -1,0 +1,33 @@
+[project]
+name = "GSL"
+dynamic = ["version"]
+description = "Libary to fully use Garmin devices without sharing private information with Garmin"
+authors = [
+    {name = "Titouan Abadie", email = "titouan.abadie@tabadie.eu"},
+]
+dependencies = [
+    "requests",
+    "http",
+    "webbrowser",
+    "hashlib"
+]
+readme = "README.md"
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 1 - Planning",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Natural Language :: English",
+    "Programming Language :: Python"
+]
+keywords = ["garmin", "garmin api", "garmin connect", "privacy", "garmin express"]
+
+[project.urls]
+Homepage = "https://github.com/abadiet/GarminServerLess"
+Issues = "https://github.com/abadiet/GarminServerLess/issues"
+
+[tool.setuptools]
+packages = ["GSL"]
+
+[tool.setuptools.dynamic]
+version = {attr = "GSL.__version__"}
