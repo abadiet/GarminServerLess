@@ -1,6 +1,6 @@
 # GarminServerLess (GSL)
 
-GSL is a Python library fully use Garmin devices without relying on Garmin servers.
+GSL is a Python library to fully use Garmin devices without relying on Garmin servers.
 
 > [!WARNING]
 > This project is still in very early stages of development.
