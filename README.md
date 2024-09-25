@@ -1,6 +1,6 @@
 # GarminServerLess (GSL)
 
-GSL is a collection of tools to fully use Garmin devices without using Garmin servers.
+GSL is a Python library to fully use Garmin devices without using Garmin servers.
 
 > [!WARNING]
 > This project is still in very early stages of development.
@@ -22,6 +22,11 @@ strava = App(ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d5
 strava.download("fēnix® 7X Pro", "strava.PRG", session_cookie)
 strava.download_settings("fēnix® 7X Pro", "strava.SET")
 ```
+
+## Reverse Engineering
+
+GSL is higly based on Garmin Express (GE), a Windows and MAC OS software provided by Garmin that enables you to update, sync and register your devices.
+GE is a pretty old software without any kind of obfuscation or high security protections. Moreover, it has been codded in C#, a programming language that runs on the .NET framework which ease the reverse engineering as I can use a .NET decompiler such as [ILSpy](https://github.com/icsharpcode/ILSpy). This is why I focused on this software instead of other Garmin facilities.
 
 
 ## Roadmap
