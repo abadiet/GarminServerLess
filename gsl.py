@@ -373,7 +373,7 @@ class Device:
         return self.updates
 
     def get_updates_names(self) -> list:
-        return [update.name for update in self.get_updates()]
+        return [update.display_name for update in self.get_updates()]
 
     def update(self, update_id: int = None, update_name: str = None) -> list:
         if self.updates is None:
@@ -382,7 +382,7 @@ class Device:
             if update_name not in self.get_updates_names():
                 raise Exception(f"Invalid update name: {update_name}")
             for i, update in enumerate(self.updates):
-                if update.name == update_name:
+                if update.display_name == update_name:
                     return [self.updates.pop(i).process(self.device_path)]
         if update_id is not None:
             if update_id >= len(self.updates):
