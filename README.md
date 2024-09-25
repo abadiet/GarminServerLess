@@ -2,6 +2,10 @@
 
 GSL is a Python library to fully use Garmin devices without relying on Garmin servers.
 
+<p align="center">
+	<img src="https://github.com/abadiet/GarminServerLess/blob/main/resources/logo.png" width="200">
+</p>
+
 > [!WARNING]
 > This project is still in very early stages of development.
 
