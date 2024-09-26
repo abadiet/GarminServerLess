@@ -1,5 +1,4 @@
 from .ciq import CIQ
-from .device import Device
 from enum import Enum
 import xml.etree.ElementTree as ElementTree
 
@@ -53,34 +52,16 @@ class App:
         self.type = App.Type(int(info["typeId"]))
         self.name = [info_locale["name"] for info_locale in info["appLocalizations"] if info_locale["locale"] == "en"][0]  # Get the english name
 
-    def download(self, device_name: str = None, device_url_name: str = None, output_path: str = "app.PRG", session_cookie: str = None) -> None:
+    def download(self, device_url_name: str, output_path: str = "app.PRG", session_cookie: str = None) -> None:
         if self.version_guid is None:
             if session_cookie is None:
                 raise Exception("Session cookie is required to download the app")
             self.version_guid = CIQ.get_last_app_version_guid(self.guid, session_cookie)
-        if device_name is None and device_url_name is None:
-            raise Exception("Device name or device url name is required to download the app")
-        if device_name is not None:
-            device = Device.get_device_info(device_name)
-            if self.compatible_devices_ids is None:
-                self._load_info()
-            if device["id"] not in self.compatible_devices_ids:
-                raise Exception(f"Device {device_name} is not compatible with this app")
-            device_url_name = device["urlName"]
         CIQ.download_app(self.guid, self.version_guid, device_url_name, output_path)
 
-    def download_settings(self, device_name: str = None, device_part_number: str = None, output_path: str = 'settings.SET', locale: str = 'en-us') -> None:
+    def download_settings(self, device_part_number: str, output_path: str = 'settings.SET', locale: str = 'en-us') -> None:
         if self.version_int is None or self.has_settings is None or self.compatible_devices_ids is None:
             self._load_info()
-        if device_name is None and device_part_number is None:
-            raise Exception("Device name or device part number is required to download the settings")
-        if device_name is not None:
-            device = Device.get_device_info(device_name)
-            if device["id"] not in self.compatible_devices_ids:
-                raise Exception(f"Device {device_name} is not compatible with this app")
-            if not self.has_settings[device["id"]]:
-                raise Exception(f"Settings are not available for device {device_name}")
-            device_part_number = device["partNumber"]
         CIQ.download_app_settings(self.guid, self.version_int, device_part_number, locale, output_path)
 
     def parse_xml(self) -> ElementTree.Element:

@@ -16,7 +16,7 @@ GSL is a Python library to fully use Garmin devices without sharing private info
 ## Usage
 
 ```
-from gsl import Device
+from GSL import Device
 
 myDevice = Device("/dev/ttyACM0")
 
