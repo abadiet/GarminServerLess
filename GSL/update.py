@@ -82,10 +82,11 @@ class Update:
                 #try to check if uppercase director exists
                 new_dir_path = os.path.join(path_dir, os.path.basename(current_path).upper())
                 if not os.path.isdir(new_dir_path):
-                    # non existing child directory path found in update
-                    # make new path as it is, as this comes from software update
+                    # non existing child directory path found in update or lowercase name is already there
                     new_dir_path = os.path.join(path_dir, os.path.basename(current_path))
-                    os.mkdir(new_dir_path)
+                    if not os.path.isdir(new_dir_path):
+                        # make new path as it is, as this comes from software update
+                        os.mkdir(new_dir_path)
                 new_current_path =  os.path.join(new_dir_path, path_parts.pop())
                 return self.fix_path_case(new_current_path, path_parts)
             else:
