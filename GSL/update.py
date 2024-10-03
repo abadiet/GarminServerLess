@@ -71,6 +71,26 @@ class Update:
         self.is_reinstall = is_reinstall
         self.type = type
 
+    def fix_path_case(self, current_path, path_parts=[]):
+        path_dir = os.path.dirname(current_path)
+        if not os.path.isdir(path_dir):
+            path_parts.append(os.path.basename(current_path))
+            # check until a proper directory parent path is found
+            return self.fix_path_case(path_dir, path_parts)
+        else:
+            if len(path_parts) > 0:
+                #try to check if uppercase director exists
+                new_dir_path = os.path.join(path_dir, os.path.basename(current_path).upper())
+                if not os.path.isdir(new_dir_path):
+                    # non existing child directory path found in update
+                    # make new path as it is, as this comes from software update
+                    new_dir_path = os.path.join(path_dir, os.path.basename(current_path))
+                    os.mkdir(new_dir_path)
+                new_current_path =  os.path.join(new_dir_path, path_parts.pop())
+                return self.fix_path_case(new_current_path, path_parts)
+            else:
+                return current_path
+
     def process(self, device_path: str) -> str:
         if self.url_is_relative:
             raise Exception("Relative URLs are not supported")
@@ -82,6 +102,7 @@ class Update:
         if self.md5 != hashlib.md5(resp.content).hexdigest():
             raise Exception(f"Failed to download the update {self.name}: MD5 does not match")
         filepath = os.path.join(device_path, self.unit_filepath)
+        filepath = self.fix_path_case(filepath, [])
         with open(filepath, "wb") as f:
             f.write(resp.content)
 
