@@ -47,7 +47,9 @@ GE is an old software with no significant obfuscation or high-security protectio
 - [x] Edit Connect IQ apps settings (using USB)
 - [ ] Edit/View metrics (using USB)
 - [x] Update devices (using USB)
+    - Not fixed: [issue#1](https://github.com/abadiet/GarminServerLess/issues/1)
 - [ ] Bye USB, Welcome Bluetooth
+- [ ] Wifi support
 
 ## Related projects
 
