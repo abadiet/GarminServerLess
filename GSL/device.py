@@ -69,37 +69,57 @@ class Device:
         self.url_name = info["urlName"]
         self.additional_names = info["additionalNames"]
         self.image_url = info["imageUrl"]
-        self.updates = None
+        self.soft_updates = None
+        self.app_updates = None
+        self.soft_versions = dict([
+            (update_xml.find('{*}PartNumber').text, (int(update_xml.find('{*}Version').find('{*}Major').text), int(update_xml.find('{*}Version').find('{*}Minor').text)))
+            for update_xml in self.xml.getroot().find('{*}MassStorageMode').findall('{*}UpdateFile')
+        ])
 
-    def get_updates(self, force_reload: bool = False) -> list:
-        if self.updates is not None and not force_reload:
-            return self.updates
-
+    def get_software_updates(self, force_reload: bool = False) -> list:
+        if self.soft_updates is not None and not force_reload:
+            return self.soft_updates
+        
         headers = {
             "Content-Type": "application/json",
-            "Accept": "application/json",
+            "Accept": "application/json"
         }
         json = {
             "ClientInfo": {
-                "ClientType": "web",
-                "LocaleCode": "en-US",
-                "OperatingSystemType": "WINDOWS",
-                "OperatingSystemVersion": "AppVersion { Version = 4}"
+                # "ClientType": "",
+                # "LocaleCode": "",
+                # "OperatingSystemType": "",
+                # "OperatingSystemVersion": ""
             },
             "GarminDeviceXml": self.xml_raw,        # TODO: use only part of the xml to keep privacy
-            "IsUserInteractive": True
+            "IsUserInteractive": False
         }
         resp = requests.post("https://omt.garmin.com/Rce/ProtobufApi/SoftwareUpdateService/GetAllUnitSoftwareUpdates", headers=headers, json=json)
         if resp.status_code != 200:
             raise Exception(f"Failed to get the updates {resp.url}: {resp.text}")
 
         resp = resp.json()
-        self.updates = []
+        self.soft_updates = []
         for update_json in resp["SoftwareUpdateOptions"]:
-            update = Update(update_json["Changes"], update_json["DisplayName"], update_json["EulaUrl"], update_json["FilePathOnUnit"].replace('\\', '/'), update_json["IsRecommended"], update_json["Url"]["Url"], update_json["Url"]["Md5"], update_json["Url"]["Size"], update_json["Url"]["IsRelative"], update_json["IsRestartRequired"], update_json["PartNumber"], update_json["SoftwareVersion"], update_json["IsPrimaryFirmware"], update_json["Locale"], update_json["ChangeSeverity"], update_json["IsReinstall"], Update.Type.get(update_json["DataType"]))
-            self.updates.append(update)
+            # check if the update is already installed
+            update_major = int(float(update_json["SoftwareVersion"]))
+            update_minor = int(float(update_json["SoftwareVersion"]) * 100) % 100
+            if update_json["PartNumber"] in self.soft_versions.keys():
+                installed_major, installed_minor = self.soft_versions[update_json["PartNumber"]]
+            if update_json["PartNumber"] not in self.soft_versions.keys() or update_major > installed_major or (update_major == installed_major and update_minor > installed_minor):
+                update = Update(update_json["Changes"], update_json["DisplayName"], update_json["EulaUrl"], update_json["FilePathOnUnit"].replace('\\', '/'), update_json["IsRecommended"], update_json["Url"]["Url"], update_json["Url"]["Md5"], update_json["Url"]["Size"], update_json["Url"]["IsRelative"], update_json["IsRestartRequired"], update_json["PartNumber"], update_major, update_minor, update_json["IsPrimaryFirmware"], update_json["Locale"], update_json["ChangeSeverity"], update_json["IsReinstall"], Update.Type.get(update_json["DataType"]), int(update_json["InstallationOrder"]))
+                self.soft_updates.append(update)
+        self.soft_updates.sort(key=lambda update: update.installation_order)
 
-        return self.updates
+        return self.soft_updates
+
+    def get_app_updates(self, force_reload: bool = False) -> list:
+        if self.app_updates is not None and not force_reload:
+            return self.app_updates
+        raise NotImplementedError("App updates are not implemented yet")
+
+    def get_updates(self, force_reload: bool = False) -> list:    
+        return self.get_software_updates(force_reload) + self.get_app_updates(force_reload)
 
     def get_updates_names(self) -> list:
         return [update.display_name for update in self.get_updates()]

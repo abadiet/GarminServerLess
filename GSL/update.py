@@ -12,6 +12,7 @@ class Update:
         OPTIONAL = 3
 
     class Type(Enum):
+        # Where is "HuntingAudio"? I am not sure of the types
         PrimaryFirmware = 0
         Firmware = 1
         Map = 2
@@ -52,7 +53,7 @@ class Update:
                 case _:
                     raise Exception(f"Invalid update type: {type_str}")
 
-    def __init__(self, changes: list = None, display_name: str = None, eula_url: str = None, unit_filepath: str = None, is_recommended: bool = None, url: str = None, md5: str = None, size: int = None, url_is_relative: bool = None, is_restart_required: bool = None, part_number: str = None, version: str = None, is_primary_firmware: bool = None, locale: str = None, change_severity: ChangeSeverity = None, is_reinstall: bool = None, type: Type = None):
+    def __init__(self, changes: list = None, display_name: str = None, eula_url: str = None, unit_filepath: str = None, is_recommended: bool = None, url: str = None, md5: str = None, size: int = None, url_is_relative: bool = None, is_restart_required: bool = None, part_number: str = None, major: int = None, minor: int = None, is_primary_firmware: bool = None, locale: str = None, change_severity: ChangeSeverity = None, is_reinstall: bool = None, type: Type = None, installation_order: int = None):
         self.changes = changes
         self.display_name = display_name
         self.eula_url = eula_url
@@ -64,12 +65,17 @@ class Update:
         self.url_is_relative = url_is_relative
         self.is_restart_required = is_restart_required
         self.part_number = part_number
-        self.version = version
+        self.major = major
+        self.minor = minor
         self.is_primary_firmware = is_primary_firmware
         self.locale = locale
         self.change_severity = change_severity
-        self.is_reinstall = is_reinstall
+        self.is_reinstall = is_reinstall    # if Id already there, force reinstall
         self.type = type
+        self.installation_order = installation_order
+
+        self.update_key = f"{'PrimaryFirmware' if self.is_primary_firmware else 'Firmware'}.{self.part_number}.{self.version}"
+
 
     def process(self, device_path: str) -> str:
         if self.url_is_relative:
