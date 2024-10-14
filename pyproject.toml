@@ -6,6 +6,12 @@ authors = [
     {name = "Titouan Abadie", email = "titouan.abadie@tabadie.eu"},
 ]
 dependencies = [
+    "enum",
+    "xml",
+    "os",
+    "re",
+    "hashlib",
+    "tempfile",
     "requests",
     "http",
     "webbrowser",

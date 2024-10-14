@@ -4,35 +4,62 @@ import xml.etree.ElementTree as ElementTree
 
 
 class App:
+    class Type(Enum):
+        pass
+
+
+class App:
+    _settings_datatype_key = "IQAppsSettingsFile"
 
     class Type(Enum):
-        UNKNOWN = 0
-        WATCHFACE = 1
-        WATCHAPP = 2
-        WIDGET = 3
-        DATAFIELD = 4
-        MUSICAPP = 5
-        ACTIVITY = 6
+
+        Unknown = 0
+        WatchFace = 1
+        WatchApp = 2
+        Widget = 3
+        DataField = 4
+        MusicApp = 5
+        Activity = 6
 
         @staticmethod
-        def get(type_str: str):
+        def get(type_str: str) -> App.Type:
             match type_str:
+                case "unknown":
+                    return App.Type.Unknown
                 case "watchface":
-                    return App.Type.WATCHFACE
+                    return App.Type.WatchFace
                 case "watchapp":
-                    return App.Type.WATCHAPP
+                    return App.Type.WatchApp
                 case "widget":
-                    return App.Type.WIDGET
+                    return App.Type.Widget
                 case "datafield":
-                    return App.Type.DATAFIELD
-                case "audio-content-provider-app":
-                    return App.Type.MUSICAPP
+                    return App.Type.DataField
+                case "musicapp":
+                    return App.Type.MusicApp
                 case "activity":
-                    return App.Type.ACTIVITY
+                    return App.Type.Activity
                 case _:
-                    return App.Type.UNKNOWN
+                    raise Exception(f"Invalid update type: {type_str}")
 
-    def __init__(self, ciq_url: str = None, ciq_guid: str = None, type: Type = None, version_int: int = None, filename: str = None, name: str = None):
+        @staticmethod
+        def get_datatype_key(type: App.Type) -> str:
+            match type:
+                case App.Type.WatchFace:
+                    return "IQWatchFaces"
+                case App.Type.WatchApp:
+                    return "IQWatchApps"
+                case App.Type.Widget:
+                    return "IQWidgets"
+                case App.Type.DataField:
+                    return "IQDataFields"
+                case App.Type.MusicApp:
+                    raise NotImplementedError("MusicApp update not implemented")
+                case App.Type.Activity:
+                    raise NotImplementedError("Activity update not implemented")
+                case App.Type.Unknown:
+                    raise NotImplementedError("Unknown update not implemented")
+
+    def __init__(self, ciq_url: str = None, ciq_guid: str = None, type: Type = None, version_int: int = None, filename: str = None, name: str = None, force_load_info: bool = False):
         self.guid = CIQ.get_app_guid(ciq_url) if ciq_url else ciq_guid
         if self.guid is None:
             raise Exception("Invalid CIQ URL or CIQ GUID")
@@ -43,6 +70,8 @@ class App:
         self.type = type
         self.filename = filename
         self.name = name
+        if force_load_info:
+            self._load_info()
 
     def _load_info(self) -> None:
         info = CIQ.get_app_info(self.guid)

@@ -20,17 +20,19 @@ from GSL import Device
 
 myDevice = Device("/dev/ttyACM0")
 
-# instal an app
+session_cookie = "..." # cookie named "session" when logged in to apps.garmin.com. Can be any Garmin account, even a junk one
+
+# install an app
 myDevice.install(session_cookie, ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d59518357")
 
 # get available updates
-print(myDevice.get_updates_names()) # e.g. ['Time Zone Map', 'GPS Software', 'Fenix 7 Sensor Hub']
+print(myDevice.get_updates_names(session_cookie)) # e.g. ['Time Zone Map', 'GPS Software', 'Fenix 7 Sensor Hub', 'Spotify']
 
 # udpate one
-myDevice.update('GPS Software')
+myDevice.update('GPS Software', session_cookie)
 
 # update all
-myDevice.update()
+myDevice.update(session_cookie)
 ```
 
 ## Reverse Engineering
@@ -47,7 +49,8 @@ GE is an old software with no significant obfuscation or high-security protectio
 - [x] Edit Connect IQ apps settings (using USB)
 - [ ] Edit/View metrics (using USB)
 - [x] Update devices (using USB)
-    - Not fixed: [issue#1](https://github.com/abadiet/GarminServerLess/issues/1)
+    - Only the firmwares and applications are supported for now
+    - There are still some tricky things to fix
 - [ ] Bye USB, Welcome Bluetooth
 - [ ] Wifi support
 
