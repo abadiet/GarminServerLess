@@ -1,3 +1,4 @@
+from .app import App
 from enum import Enum
 
 

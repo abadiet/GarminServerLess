@@ -8,11 +8,58 @@ import tempfile
 
 
 class Update:
+    class Type(Enum):
+        pass
 
-    def __init__(self):
+
+class Update:
+
+    class Type(Enum):
+        # Where is "HuntingAudio"? I am not sure of the types
+        PrimaryFirmware = 0
+        Firmware = 1
+        Map = 2
+        Garage  = 3
+        Computer = 4
+        LanguagePack = 5
+        ConnectItem = 6
+        Application = 7
+        SafetyCamera = 8
+        MarineChart = 9
+        GeneralDlc = 10
+
+        @staticmethod
+        def get(type_str: str) -> Update.Type:
+            match type_str:
+                case "PrimaryFirmware":
+                    return Update.Type.PrimaryFirmware
+                case "Firmware":
+                    return Update.Type.Firmware
+                case "Map":
+                    return Update.Type.Map
+                case "Garage":
+                    return Update.Type.Garage
+                case "Computer":
+                    return Update.Type.Computer
+                case "LanguagePack":
+                    return Update.Type.LanguagePack
+                case "ConnectItem":
+                    return Update.Type.ConnectItem
+                case "Application":
+                    return Update.Type.Application
+                case "SafetyCamera":
+                    return Update.Type.SafetyCamera
+                case "MarineChart":
+                    return Update.Type.MarineChart
+                case "GeneralDlc":
+                    return Update.Type.GeneralDlc
+                case _:
+                    raise Exception(f"Invalid update type: {type_str}")
+
+    def __init__(self, **kwargs):
         raise Exception("This is an abstract class")
 
-    def process(self) -> str:
+    def process(self, **kwargs) -> str:
         raise Exception("This is an abstract method")
 
 
@@ -31,54 +78,11 @@ class FirmwareUpdate(Update):
         RECOMMENDED = 2
         OPTIONAL = 3
 
-    class Type(Enum):
-        # Where is "HuntingAudio"? I am not sure of the types
-        PrimaryFirmware = 0
-        Firmware = 1
-        Map = 2
-        Garage  = 3
-        Computer = 4
-        LanguagePack = 5
-        ConnectItem = 6
-        Application = 7
-        SafetyCamera = 8
-        MarineChart = 9
-        GeneralDlc = 10
-
-        @staticmethod
-        def get(type_str: str) -> FirmwareUpdate.Type:
-            match type_str:
-                case "PrimaryFirmware":
-                    return FirmwareUpdate.Type.PrimaryFirmware
-                case "Firmware":
-                    return FirmwareUpdate.Type.Firmware
-                case "Map":
-                    return FirmwareUpdate.Type.Map
-                case "Garage":
-                    return FirmwareUpdate.Type.Garage
-                case "Computer":
-                    return FirmwareUpdate.Type.Computer
-                case "LanguagePack":
-                    return FirmwareUpdate.Type.LanguagePack
-                case "ConnectItem":
-                    return FirmwareUpdate.Type.ConnectItem
-                case "Application":
-                    return FirmwareUpdate.Type.Application
-                case "SafetyCamera":
-                    return FirmwareUpdate.Type.SafetyCamera
-                case "MarineChart":
-                    return FirmwareUpdate.Type.MarineChart
-                case "GeneralDlc":
-                    return FirmwareUpdate.Type.GeneralDlc
-                case _:
-                    raise Exception(f"Invalid update type: {type_str}")
-
     def __init__(
             self,
             url_is_relative: bool,
             url: str,
             unit_filepath: str,
-            device_path: str,
             changes: list = None,
             display_name: str = None,
             eula_url: str = None,
@@ -93,7 +97,7 @@ class FirmwareUpdate(Update):
             locale: str = None,
             change_severity: FirmwareUpdate.ChangeSeverity = None,
             is_reinstall: bool = None,
-            type: Type = None,
+            type: Update.Type = None,
             installation_order: int = None
         ):
         self.changes = changes
@@ -113,22 +117,23 @@ class FirmwareUpdate(Update):
         self.locale = locale
         self.change_severity = change_severity
         self.is_reinstall = is_reinstall    # if Id already there, force reinstall
-        self.type = type
+        self.update_type = type
+        if self.update_type != Update.Type.PrimaryFirmware and self.update_type != Update.Type.Firmware:
+            raise Exception(f"Invalid firmware update type {self.type}")
         self.installation_order = installation_order
-        self.device_path = device_path
 
 
-    def process(self) -> str:
+    def process(self, device_rootpath: str) -> str:
         if self.url_is_relative:
-            raise Exception("Relative URLs are not supported")
+            raise Exception("Relative URLs are not supported for firmware updates")
         resp = requests.get(self.url)
         if resp.status_code != 200:
-            raise Exception(f"Failed to download the update {self.name}: {resp.text}")
+            raise Exception(f"Failed to download the firmware update {self.name}:\n{resp.text}")
         if self.size is not None and self.size != len(resp.content):
-            raise Exception(f"Failed to download the update {self.name}: size does not match")
+            raise Exception(f"Failed to download the firmware update {self.name}: size does not match")
         if self.md5 is not None and self.md5 != hashlib.md5(resp.content).hexdigest():
-            raise Exception(f"Failed to download the update {self.name}: MD5 does not match")
-        filepath = os.path.join(self.device_path, self.unit_filepath)
+            raise Exception(f"Failed to download the firmware update {self.name}: MD5 does not match")
+        filepath = os.path.join(device_rootpath, self.unit_filepath)
         with open(filepath, "wb") as f:
             f.write(resp.content)
 
@@ -213,10 +218,7 @@ class AppUpdate(Update):
     def __init__(
             self,
             app_guid: str,
-            device_url_name: str,
-            session_cookie: str,
             unit_filepath: str,
-            device_path: str,
             developer_name: str = None,
             name: str = None,
             type: App.Type = None,
@@ -232,7 +234,7 @@ class AppUpdate(Update):
         self.app_guid = app_guid
         self.developer_name = developer_name
         self.name = name
-        self.type = type
+        self.app_type = type
         self.size = size
         self.version_int = version_int
         self.version_name = version_name
@@ -241,22 +243,28 @@ class AppUpdate(Update):
         self.has_settings = has_settings
         self.min_version_firmware = min_version_firmware
         self.max_version_firmware = max_version_firmware
-        self.device_path = device_path
-        self.device_url_name = device_url_name
-        self.session_cookie = session_cookie
         self.unit_filepath = unit_filepath
+        self.update_type = Update.Type.Application
 
-    def process(self) -> str:
-        version_guid = CIQ.get_last_app_version_guid(self.app_guid, self.session_cookie) # TODO: we want the version_int intead of the last version
+    def process(self, device_rootpath, device_url_name, session_cookie) -> str:
+        # retrieve the version guid
+        version_guid = CIQ.get_last_app_version_guid(self.app_guid, session_cookie) # TODO: we want the version_int intead of the last version
+
+        # download the app to a temporary file
         tmp = tempfile.NamedTemporaryFile()
-        CIQ.download_app(self.app_guid, version_guid, self.device_url_name, tmp.name)
+        CIQ.download_app(self.app_guid, version_guid, device_url_name, tmp.name)
         if self.size is not None and self.size + 520 != os.path.getsize(tmp.name):  # TODO: why 520 bits bigger?!?
-            raise Exception(f"Failed to download the app {self.name}: size does not match")
-        filepath = os.path.join(self.device_path, self.unit_filepath)
+            raise Exception(f"Failed to download the application {self.name}: size does not match. This is an interesting error, please report it on GitHub (https://github.com/abadiet/GarminServerLess)")
+
+        # move the temporary file to the device
+        filepath = os.path.join(device_rootpath, self.unit_filepath)
         if os.path.exists(filepath):
             os.remove(filepath)
-        with open(filepath, "wb") as f:
-            f.write(tmp.read())
+        try:
+            with open(filepath, "wb") as f:
+                f.write(tmp.read())
+        except Exception as e:
+            raise Exception(f"Failed to write the application {self.name} to the device: {e}")
         tmp.close()
 
         # TODO: Update the xml file

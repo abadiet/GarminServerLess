@@ -59,10 +59,17 @@ class App:
                 case App.Type.Unknown:
                     raise NotImplementedError("Unknown update not implemented")
 
-    def __init__(self, ciq_url: str = None, ciq_guid: str = None, type: Type = None, version_int: int = None, filename: str = None, name: str = None, force_load_info: bool = False):
-        self.guid = CIQ.get_app_guid(ciq_url) if ciq_url else ciq_guid
-        if self.guid is None:
-            raise Exception("Invalid CIQ URL or CIQ GUID")
+    def __init__(
+            self,
+            ciq_guid: str = None,
+            app_guid: str = None,
+            type: Type = None,
+            version_int: int = None,
+            filename: str = None,
+            name: str = None,
+            force_load_info: bool = False
+        ):
+        self.guid = ciq_guid
         self.version_guid = None
         self.version_int = version_int
         self.compatible_devices_ids = None
@@ -70,6 +77,7 @@ class App:
         self.type = type
         self.filename = filename
         self.name = name
+        self.local_guid = app_guid
         if force_load_info:
             self._load_info()
 
