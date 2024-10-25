@@ -61,6 +61,7 @@ class App:
 
     def __init__(
             self,
+            ciq_url: str = None,
             ciq_guid: str = None,
             app_guid: str = None,
             type: Type = None,
@@ -69,6 +70,8 @@ class App:
             name: str = None,
             force_load_info: bool = False
         ):
+        if ciq_url is not None:
+            ciq_guid = CIQ.get_app_guid(ciq_url)
         self.guid = ciq_guid
         self.version_guid = None
         self.version_int = version_int
@@ -103,17 +106,17 @@ class App:
 
     def parse_xml(self) -> ElementTree.Element:
         match self.type:
-            case App.Type.WATCHFACE:
+            case App.Type.WatchFace:
                 app_type = "watchface"
-            case App.Type.WATCHAPP:
+            case App.Type.WatchApp:
                 app_type = "watchapp"
-            case App.Type.WIDGET:
+            case App.Type.Widget:
                 app_type = "widget"
-            case App.Type.DATAFIELD:
+            case App.Type.DataField:
                 app_type = "datafield"
-            case App.Type.MUSICAPP:
+            case App.Type.MusicApp:
                 app_type = "audio-content-provider-app"
-            case App.Type.ACTIVITY:
+            case App.Type.Activity:
                 app_type = "activity"
             case _:
                 app_type = "unknown"

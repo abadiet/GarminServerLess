@@ -2,7 +2,7 @@ from .app import App
 from .update import FirmwareUpdate, AppUpdate, Update
 from .filesystem import Datatype
 import requests
-import xml.etree.ElementTree as ElementTree
+import xml.etree.ElementTree as ElementTree #TODO: no longer use ET
 import os
 import re
 
@@ -68,7 +68,7 @@ class Device:
         self.xml = ElementTree.parse(self.xml_filepath)
     
         # check XML schema
-        if self.xml.getroot().tag != "{http://www.garmin.com/xmlschemas/GarminDevice/v2}Model":
+        if self.xml.getroot().tag != "{http://www.garmin.com/xmlschemas/GarminDevice/v2}Device":
             raise NotImplementedError("Unknown XML schema: please report this issue on the GitHub repository to add support for this schema (https://github.com/abadiet/GarminServerLess)")
 
         # parse XML
@@ -244,7 +244,7 @@ class Device:
                 # TODO: assuming there is only one file (files[0])
                 type_files = self.datatypes[App.Type.get_datatype_key(app_type)].files
                 if len(type_files) != 1:
-                    raise Exception(f"{len(type_files)} file{"s are" if len(type_files) > 0 else " is"} available for the datatype associated to the application type {app_type}")
+                    raise Exception(f"{len(type_files)} file{'s are' if len(type_files) > 0 else ' is'} available for the datatype associated to the application type {app_type}")
                 unit_path = type_files[0].path
 
                 # check if the update is already installed
@@ -366,12 +366,12 @@ class Device:
         self.updates = []
         return paths
 
-    def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> None:
+    def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> bool:
 
         # check if an application can be installed
         if len(self.apps) >= self.max_nb_apps:
             print("[WARNING] Maximum number of applications reached, skipping the installation")
-            return
+            return False
 
         # load app if needed
         if app is None:
@@ -380,36 +380,38 @@ class Device:
         # check if the app is already installed
         if app.guid in [app.guid for app in self.apps]:
             print("[WARNING] The application is already installed, skipping the installation")
-            return
+            return False
 
         # application file
         type_files = self.datatypes[App.Type.get_datatype_key(app.type)].files
         if len(type_files) != 1:
-            raise Exception(f"{len(type_files)} file{"s are" if len(type_files) > 0 else " is"} available for the datatype associated to the application type {app.type}")
-        file_extension = type_files[0].extension
+            raise Exception(f"{len(type_files)} file{'s are' if len(type_files) > 0 else ' is'} available for the datatype associated to the application type {app.type}")
+        type_file = type_files[0]
+        file_extension = type_file.extension
         if file_extension is None:
             print("[WARNING] The file extension is not defined in the xml file: defaulting to .PRG")
             file_extension = "PRG"
-        if type_files.transfert_direction is None:
+        if type_file.transfert_direction is None:
             print("[WARNING] The transfert direction is not defined in the xml file: assuming it is either an input to the unit or an input/output")
-        elif type_files.transfert_direction == Datatype.TransfertDirection.OutputFromUnit:
+        elif type_file.transfert_direction == Datatype.TransfertDirection.OutputFromUnit:
             raise Exception("The transfert direction is output from the unit")
         app.filename = f'{app.guid}.{file_extension}'
-        app_filepath = os.path.join(self.device_rootpath, type_files.path, app.filename)
+        app_filepath = os.path.join(self.device_rootpath, type_file.path, app.filename)
 
         # settings file
         type_files = self.datatypes[App._settings_datatype_key].files
         if len(type_files) != 1:
-            raise Exception(f"{len(type_files)} file{"s are" if len(type_files) > 0 else " is"} available for the datatype associated to the setting type {App._settings_datatype_key}")
-        file_extension = type_files[0].extension
+            raise Exception(f"{len(type_files)} file{'s are' if len(type_files) > 0 else ' is'} available for the datatype associated to the setting type {App._settings_datatype_key}")
+        type_file = type_files[0]
+        file_extension = type_file.extension
         if file_extension is None:
             print("[WARNING] The file extension is not defined in the xml file: defaulting to .SET")
             file_extension = "SET"
-        if type_files.transfert_direction is None:
+        if type_file.transfert_direction is None:
             print("[WARNING] The transfert direction is not defined in the xml file: assuming it is either an input to the unit or an input/output")
-        elif type_files.transfert_direction == Datatype.TransfertDirection.OutputFromUnit:
+        elif type_file.transfert_direction == Datatype.TransfertDirection.OutputFromUnit:
             raise Exception("The transfert direction is output from the unit")
-        set_filepath = os.path.join(self.device_rootpath, type_files.path, f'{app.guid}.{file_extension}')
+        set_filepath = os.path.join(self.device_rootpath, type_file.path, f'{app.guid}.{file_extension}')
 
         # download the app and the settings
         try:
@@ -424,6 +426,7 @@ class Device:
             self.xml.getroot().find('{*}Extensions').find('{*}IQAppExt').find('{*}Apps').append(app_xml)
             xml_str = ElementTree.tostring(self.xml.getroot(), encoding='unicode', method='xml')
             xml_str = re.sub(r"ns\d+:", "", xml_str)
+            xml_str = re.sub(r":ns\d", "", xml_str)
             with open(self.xml_filepath, "w") as f:
                 f.write(xml_str)
         except Exception as e:
@@ -433,3 +436,5 @@ class Device:
         self.apps.append(app)
 
         # TODO: What are doing 'AppSpace', 'AppId' and RSA keys in the xml file?
+
+        return True
