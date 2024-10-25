@@ -68,6 +68,7 @@ class Device:
         self.xml = ElementTree.parse(self.xml_filepath)
     
         # check XML schema
+        # TODO: check all the schemas
         if self.xml.getroot().tag != "{http://www.garmin.com/xmlschemas/GarminDevice/v2}Device":
             raise NotImplementedError("Unknown XML schema: please report this issue on the GitHub repository to add support for this schema (https://github.com/abadiet/GarminServerLess)")
 
@@ -288,6 +289,10 @@ class Device:
         return [update.name for update in self.get_updates(session_cookie, force_reload)]
 
     def update_firmwares(self, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
+
+        print ("[WARNING] The Update will be processed but the XML file will not be updated: this feature is not implemented yet.")
+        # TODO update the xml file
+
         # by name
         if update_name is not None:
             if update_name not in self.get_firmware_updates_names(force_reload):
@@ -307,9 +312,14 @@ class Device:
         for update in self.get_firmware_updates(force_reload):
             paths.append(update.process(self.device_rootpath))
         self.firmware_updates = []
+
         return paths
 
     def update_apps(self, session_cookie: str, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
+
+        print ("[WARNING] The Update will be processed but the XML file will not be updated: this feature is not implemented yet.")
+        # TODO update the xml file
+
         # by name
         if update_name is not None:
             if update_name not in self.get_apps_updates_names(session_cookie, force_reload):
@@ -329,6 +339,7 @@ class Device:
         for update in self.get_app_updates(session_cookie, force_reload):
             paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
         self.app_updates = []
+
         return paths
 
     def update(self, session_cookie: str, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
@@ -339,11 +350,11 @@ class Device:
             # check for firmware updates
             for i, update in enumerate(self.firmware_updates):
                 if update.name == update_name:
-                    return [self.firmware_updates.pop(i).process()]
+                    return self.update_firmwares(update_id=i, force_reload=False)
             # check for application updates
             for i, update in enumerate(self.app_updates):
                 if update.name == update_name:
-                    return [self.app_updates.pop(i).process(self.device_rootpath, self.url_name, session_cookie)]
+                    return self.update_apps(session_cookie=session_cookie, update_id=i, force_reload=False)
 
         # by id
         if update_id is not None:
@@ -351,19 +362,16 @@ class Device:
                 raise Exception(f"Invalid update id: {update_id}")
             if update_id < len(self.firmware_updates):
                 # it is a firmware update
-                return [self.firmware_updates.pop(update_id).process()]
+                return self.update_firmwares(update_id=update_id, force_reload=False)
             # it is an application update
-            return [self.app_updates.pop(update_id - len(self.firmware_updates)).process(self.device_rootpath, self.url_name, session_cookie)]
+            return self.update_apps(session_cookie=session_cookie, update_id=(update_id - len(self.firmware_updates)), force_reload=False)
 
         # all
         paths = []
         # update firmwares
-        for update in self.get_firmware_updates(force_reload):
-            paths.append(update.process(self.device_rootpath))
+        paths += self.update_firmwares(force_reload=force_reload)
         # update applications
-        for update in self.get_app_updates(session_cookie, force_reload):
-            paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
-        self.updates = []
+        paths += self.update_apps(session_cookie=session_cookie, force_reload=force_reload)
         return paths
 
     def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> bool:
@@ -416,19 +424,16 @@ class Device:
         # download the app and the settings
         try:
             app.download(device_url_name=self.url_name, output_path=app_filepath, session_cookie=session_cookie)
-            app.download_settings(device_part_number=self.part_number, output_path=set_filepath, locale=locale)
+            if app.has_settings:
+                app.download_settings(device_part_number=self.part_number, output_path=set_filepath, locale=locale)
         except Exception as e:
             raise Exception(f"Failed to download the application and the settings: {e}")
 
         # update the xml file
         try:
             app_xml = app.parse_xml()
-            self.xml.getroot().find('{*}Extensions').find('{*}IQAppExt').find('{*}Apps').append(app_xml)
-            xml_str = ElementTree.tostring(self.xml.getroot(), encoding='unicode', method='xml')
-            xml_str = re.sub(r"ns\d+:", "", xml_str)
-            xml_str = re.sub(r":ns\d", "", xml_str)
-            with open(self.xml_filepath, "w") as f:
-                f.write(xml_str)
+            print ("[WARNING] The Application is installed but the XML file is not updated: this feature is not implemented yet.")
+            # TODO update the xml file
         except Exception as e:
             raise Exception(f"Failed to update the device XML file: {e}")
 
