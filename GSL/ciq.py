@@ -54,7 +54,10 @@ class CIQ:
         # Add the validate button
         html_form = html_form.replace('</head>', "<script type='text/javascript'>document.addEventListener('DOMContentLoaded', function() {let btn = document.createElement('button');btn.innerHTML = 'Validate';btn.style.width = '100%';btn.style.backgroundColor = 'lightgreen';btn.style.minHeight = '70px';btn.style.fontSize = 'large';btn.style.fontWeight = 'bold';btn.addEventListener('click', function() {const settings_str = handleFormSubmit();if (settings_str != '' && settings_str !== undefined) {const xhr = new XMLHttpRequest();xhr.open('POST', '/');xhr.addEventListener('load', function() {close();});xhr.send(settings_str);}});document.body.appendChild(btn);});</script></head>")
 
+
         class Handler(BaseHTTPRequestHandler):
+            done = False
+
             def do_GET(self):
                 self.send_response(200)
                 self.send_header('Content-type', 'text/html')
@@ -85,9 +88,16 @@ class CIQ:
                 self.end_headers()
                 self.wfile.write(b"OK")
 
+                # Close the server
+                Handler.done = True
+
+            def log_message(self, format, *args):
+                return
+
+
         # open the local server
         server = HTTPServer(('localhost', 8080), Handler)
         webbrowser.open(f"http://localhost:8080")
-        server.handle_request() # open the html form
-        server.handle_request() # get the settings string and then the file
+        while not Handler.done:
+            server.handle_request()
         server.server_close()
