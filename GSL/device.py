@@ -123,8 +123,8 @@ class Device:
         self.image_url = info["imageUrl"]
 
         # init
-        self.firmware_updates = None
-        self.app_updates = None
+        self.firmwares_updates = None
+        self.apps_updates = None
 
     def read_xml(self) -> None:
         if not os.path.exists(self.xml_filepath):
@@ -136,9 +136,9 @@ class Device:
             raise Exception(f"Failed to read the device XML file {self.xml_filepath}: {e}")
         self.xml = ElementTree.parse(self.xml_filepath)
 
-    def get_firmware_updates(self, force_reload: bool = False) -> list:
-        if self.firmware_updates is not None and not force_reload:
-            return self.firmware_updates
+    def get_firmwares_updates(self, force_reload: bool = False) -> list:
+        if self.firmwares_updates is not None and not force_reload:
+            return self.firmwares_updates
 
         headers = {
             "Content-Type": "application/json",
@@ -163,7 +163,7 @@ class Device:
         except Exception as e:
             raise Exception(f"Failed to parse the firmware updates response: {e}")
 
-        self.firmware_updates = []
+        self.firmwares_updates = []
         for update_json in resp["SoftwareUpdateOptions"]:
 
             try:
@@ -181,7 +181,7 @@ class Device:
                     (update_major == installed_major and update_minor > installed_minor)
                 ):
                     # adding the update
-                    self.firmware_updates.append(
+                    self.firmwares_updates.append(
                         FirmwareUpdate(
                             url_is_relative=update_json["Url"]["IsRelative"],
                             url=update_json["Url"]["Url"],
@@ -200,7 +200,7 @@ class Device:
                             # locale=update_json["Locale"],
                             # change_severity=update_json["ChangeSeverity"],
                             # is_reinstall=update_json["IsReinstall"],
-                            # type=Update.Type.get(update_json["DataType"]),
+                            type=Update.Type.get(update_json["DataType"]),
                             installation_order=int(update_json["InstallationOrder"])
                         )
                     )
@@ -209,13 +209,13 @@ class Device:
                 print(f"[WARNING] Failed to parse a firmware update, skipping this update: {e}")
 
         # sort by installation order
-        self.firmware_updates.sort(key=lambda update: update.installation_order)
+        self.firmwares_updates.sort(key=lambda update: update.installation_order)
 
-        return self.firmware_updates
+        return self.firmwares_updates
 
-    def get_app_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:
-        if self.app_updates is not None and not force_reload:
-            return self.app_updates
+    def get_apps_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        if self.apps_updates is not None and not force_reload:
+            return self.apps_updates
 
         if session_cookie is None:
             raise Exception("A session cookie is required to get the app updates")
@@ -241,7 +241,7 @@ class Device:
         except Exception as e:
             raise Exception(f"Failed to parse the app updates response: {e}")
 
-        self.app_updates = []
+        self.apps_updates = []
         for update_json in resp:
             try:
                 # get the application path on the device
@@ -257,12 +257,12 @@ class Device:
                 if update_json["latestInternalVersionNumber"] > installed_app.version_int:
 
                     # adding the update
-                    self.app_updates.append(
+                    self.apps_updates.append(
                         AppUpdate(
                             app_guid=update_json["appId"],
                             unit_filepath=os.path.join(unit_path, installed_app.filename),
                             # developer_name=update_json["developerName"],
-                            # name=update_json["name"],
+                            name=update_json["name"],
                             # type=app_type,
                             size=update_json["size"],
                             # version_int=update_json["latestInternalVersionNumber"],
@@ -278,104 +278,141 @@ class Device:
             except Exception as e:
                 print(f"[WARNING] Failed to parse an application update, skipping this update: {e}")
 
-        return self.app_updates
+        return self.apps_updates
 
     def get_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:    
-        return self.get_firmware_updates(force_reload) + self.get_app_updates(session_cookie, force_reload)
+        return self.get_firmwares_updates(force_reload) + self.get_apps_updates(session_cookie, force_reload)
 
-    def get_firmware_updates_names(self, force_reload: bool = False) -> list:
-        return [update.name for update in self.get_firmware_updates(force_reload)]
+    def get_firmwares_updates_name(self, force_reload: bool = False) -> list:
+        return [update.name for update in self.get_firmwares_updates(force_reload)]
 
-    def get_apps_updates_names(self, session_cookie: str = None, force_reload: bool = False) -> list:
-        return [update.name for update in self.get_app_updates(session_cookie, force_reload)]
+    def get_apps_updates_name(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        return [update.name for update in self.get_apps_updates(session_cookie, force_reload)]
 
-    def get_updates_names(self, session_cookie: str = None, force_reload: bool = False) -> list:
+    def get_updates_name(self, session_cookie: str = None, force_reload: bool = False) -> list:
         return [update.name for update in self.get_updates(session_cookie, force_reload)]
 
-    def update_firmwares(self, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
+    def update_firmwares(self, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        paths = []
 
-        print ("[WARNING] The Update will be processed but the XML file will not be updated: this feature is not implemented yet.")
-        # TODO update the xml file
+        # Reload if forced
+        if force_reload:
+            self.get_firmwares_updates(force_reload=True)
+        
+        # convert the inputs to lists
+        if ids is not None and isinstance(ids, int):
+            ids = [ids]
+        if names is not None and isinstance(names, str):
+            names = [names]
 
         # by name
-        if update_name is not None:
-            if update_name not in self.get_firmware_updates_names(force_reload):
-                raise Exception(f"Invalid update name: {update_name}")
-            for i, update in enumerate(self.firmware_updates):
-                if update.name == update_name:
-                    return [self.firmware_updates.pop(i).process(self.device_rootpath)]
-        
+        if names is not None:
+            updates_name = self.get_firmwares_updates_name(force_reload=False)
+            # check the names
+            for name in names:
+                if name not in updates_name:
+                    raise Exception(f"Invalid firmware update name: {name}")
+            # look for the updates in the firmware updates list
+            for id, update in enumerate(self.get_firmwares_updates(force_reload=False)):
+                if update.name in names:
+                    paths.append(self.firmwares_updates.pop(id).process(self.device_rootpath))
+
         # by id
-        if update_id is not None:
-            if update_id >= len(self.get_firmware_updates(force_reload)):
-                raise Exception(f"Invalid update id: {update_id}")
-            return [self.firmware_updates.pop(update_id).process(self.device_rootpath)]
+        if ids is not None:
+            max_id = len(self.get_firmwares_updates(force_reload=False))
+            for id in ids:
+                if id >= max_id:
+                    raise Exception(f"Invalid firmware update id: {id}")
+                paths.append(self.firmwares_updates.pop(id).process(self.device_rootpath))
 
         # all
-        paths = []
-        for update in self.get_firmware_updates(force_reload):
-            paths.append(update.process(self.device_rootpath))
-        self.firmware_updates = []
+        if ids is None and names is None:
+            for update in self.get_firmwares_updates(force_reload=False):
+                paths.append(update.process(self.device_rootpath))
+            self.firmwares_updates = []
+
+        print ("[WARNING] The firmwares' updates have been processed but the XML file has not been updated: this feature is not implemented yet.")
+        # TODO update the xml file
 
         return paths
 
-    def update_apps(self, session_cookie: str, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
+    def update_apps(self, session_cookie: str, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        paths = []
 
-        print ("[WARNING] The Update will be processed but the XML file will not be updated: this feature is not implemented yet.")
-        # TODO update the xml file
+        # Reload if forced
+        if force_reload:
+            self.get_apps_updates(session_cookie=session_cookie, force_reload=True)
+        
+        # convert the inputs to lists
+        if ids is not None and isinstance(ids, int):
+            ids = [ids]
+        if names is not None and isinstance(names, str):
+            names = [names]
 
         # by name
-        if update_name is not None:
-            if update_name not in self.get_apps_updates_names(session_cookie, force_reload):
-                raise Exception(f"Invalid update name: {update_name}")
-            for i, update in enumerate(self.app_updates):
-                if update.name == update_name:
-                    return [self.app_updates.pop(i).process(self.device_rootpath, self.url_name, session_cookie)]
-        
+        if names is not None:
+            updates_name = self.get_apps_updates_name(session_cookie=session_cookie, force_reload=False)
+            # check the names
+            for name in names:
+                if name not in updates_name:
+                    raise Exception(f"Invalid application update name: {name}")
+            # look for the updates in the apps updates list
+            for id, update in enumerate(self.get_apps_updates(session_cookie=session_cookie, force_reload=False)):
+                if update.name in names:
+                    paths.append(self.apps_updates.pop(id).process(self.device_rootpath, self.url_name, session_cookie))
+
         # by id
-        if update_id is not None:
-            if update_id >= len(self.get_app_updates(session_cookie, force_reload)):
-                raise Exception(f"Invalid update id: {update_id}")
-            return [self.app_updates.pop(update_id).process(self.device_rootpath, self.url_name, session_cookie)]
+        if ids is not None:
+            max_id = len(self.get_apps_updates(session_cookie=session_cookie, force_reload=False))
+            for id in ids:
+                if id >= max_id:
+                    raise Exception(f"Invalid application update id: {id}")
+                paths.append(self.apps_updates.pop(id).process(self.device_rootpath, self.url_name, session_cookie))
 
         # all
-        paths = []
-        for update in self.get_app_updates(session_cookie, force_reload):
-            paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
-        self.app_updates = []
+        if ids is None and names is None:
+            for update in self.get_apps_updates(session_cookie=session_cookie, force_reload=False):
+                paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
+            self.apps_updates = []
+
+        print ("[WARNING] The applications' updates have been processed but the XML file has not been updated: this feature is not implemented yet.")
+        # TODO update the xml file
 
         return paths
 
-    def update(self, session_cookie: str, update_id: int = None, update_name: str = None, force_reload: bool = False) -> list:
+    def update(self, session_cookie: str, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        paths = []
+
+        # Reload if forced
+        if force_reload:
+            self.get_updates(session_cookie=session_cookie, force_reload=True)
+
+        # convert the inputs to lists
+        if ids is not None and isinstance(ids, int):
+            ids = [ids]
+        if names is not None and isinstance(names, str):
+            names = [names]
+
         # by name
-        if update_name is not None:
-            if update_name not in self.get_updates_names(session_cookie, force_reload):
-                raise Exception(f"Invalid update name: {update_name}")
-            # check for firmware updates
-            for i, update in enumerate(self.firmware_updates):
-                if update.name == update_name:
-                    return self.update_firmwares(update_id=i, force_reload=False)
-            # check for application updates
-            for i, update in enumerate(self.app_updates):
-                if update.name == update_name:
-                    return self.update_apps(session_cookie=session_cookie, update_id=i, force_reload=False)
+        if names is not None:
+            names_firmwares = [name for name in names if name in self.get_firmwares_updates_name(force_reload=False)]
+            names_apps = [name for name in names if name in self.get_apps_updates_name(session_cookie=session_cookie, force_reload=False)]
+            paths += self.update_firmwares(names=names_firmwares, force_reload=False)
+            paths += self.update_apps(session_cookie=session_cookie, names=names_apps, force_reload=False)
 
         # by id
-        if update_id is not None:
-            if update_id >= len(self.get_updates(session_cookie, force_reload)):
-                raise Exception(f"Invalid update id: {update_id}")
-            if update_id < len(self.firmware_updates):
-                # it is a firmware update
-                return self.update_firmwares(update_id=update_id, force_reload=False)
-            # it is an application update
-            return self.update_apps(session_cookie=session_cookie, update_id=(update_id - len(self.firmware_updates)), force_reload=False)
+        if ids is not None:
+            max_firmwares_id = len(self.get_firmwares_updates(force_reload=False))
+            max_apps_id = len(self.get_updates(session_cookie=session_cookie, force_reload=False))
+            ids_firmwares = [id for id in ids if id < max_firmwares_id]
+            ids_apps = [(id - max_firmwares_id) for id in ids if (id >= max_firmwares_id and id < max_apps_id)]
+            paths += self.update_firmwares(ids=ids_firmwares, force_reload=False)
+            paths += self.update_apps(session_cookie=session_cookie, ids=ids_apps, force_reload=False)
 
-        # all
-        paths = []
-        # update firmwares
-        paths += self.update_firmwares(force_reload=force_reload)
-        # update applications
-        paths += self.update_apps(session_cookie=session_cookie, force_reload=force_reload)
+        if ids is None and names is None:
+            paths += self.update_firmwares(force_reload=False)
+            paths += self.update_apps(session_cookie=session_cookie, force_reload=False)
+
         return paths
 
     def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> bool:

@@ -26,10 +26,10 @@ session_cookie = "..." # cookie named "session" when logged in to apps.garmin.co
 myDevice.install(session_cookie, ciq_url="https://apps.garmin.com/apps/6b53eedd-bf67-4c18-a2d6-af1d59518357")
 
 # get available updates
-print(myDevice.get_updates_names(session_cookie)) # e.g. ['Time Zone Map', 'GPS Software', 'Fenix 7 Sensor Hub', 'Spotify']
+print(myDevice.get_updates_name(session_cookie)) # e.g. ['Time Zone Map', 'GPS Software', 'Fenix 7 Sensor Hub', 'Spotify']
 
-# udpate one
-myDevice.update('GPS Software', session_cookie)
+# process specific updates
+myDevice.update(names=['GPS Software', 'Spotify'], session_cookie=session_cookie)
 
 # update all
 myDevice.update(session_cookie)
