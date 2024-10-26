@@ -429,12 +429,11 @@ class Device:
 
         return paths
 
-    def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> bool:
+    def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> None:
 
         # check if an application can be installed
         if len(self.apps) >= self.max_nb_apps:
-            print("[WARNING] Maximum number of applications reached, skipping the installation")
-            return False
+            raise Exception("Maximum number of applications reached")
 
         # load app if needed
         if app is None:
@@ -442,8 +441,7 @@ class Device:
 
         # check if the app is already installed
         if app.guid in [app.guid for app in self.apps]:
-            print("[WARNING] The application is already installed, skipping the installation")
-            return False
+            raise Exception("The application is already installed")
 
         # application file
         type_files = self.datatypes[App.Type.get_datatype_key(app.type)].files
@@ -498,5 +496,3 @@ class Device:
         self.apps.append(app)
 
         # TODO: What are doing 'AppSpace', 'AppId' and RSA keys in the xml file?
-
-        return True
