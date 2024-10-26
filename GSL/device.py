@@ -381,7 +381,7 @@ class Device:
                 if update.name in names:
                     paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
                     ids_torm.append(id)
-                    self.xml_raw = update_xml(self.xml_raw, update.app_guid, update.version_int)
+                    __update_xml(update.app_guid, update.version_int)
             for id in ids_torm:
                 self.apps_updates.pop(id)
 
