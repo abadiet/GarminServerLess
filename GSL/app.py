@@ -140,6 +140,6 @@ class App:
             case _:
                 app_type = "unknown"
 
-        app_xml = f"<App><AppName>{self.name}</AppName><StoreId>{self.guid}</StoreId><AppId>{''}</AppId><AppType>{app_type}</AppType><Version>{self.version_int}</Version><FileName>{self.filename}</FileName></App><App>"
+        app_xml = f"<App><AppName>{self.name}</AppName><StoreId>{self.guid}</StoreId><AppId>{''}</AppId><AppType>{app_type}</AppType><Version>{self.version_int}</Version><FileName>{self.filename}</FileName></App>"
 
         return app_xml

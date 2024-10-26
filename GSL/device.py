@@ -58,14 +58,7 @@ class Device:
         # read XML file
         self.device_rootpath = device_rootpath
         self.xml_filepath = os.path.join(self.device_rootpath, "GARMIN/GarminDevice.xml")
-        if not os.path.exists(self.xml_filepath):
-            raise FileNotFoundError(f"Device XML file not found: {self.device_rootpath}")
-        try:
-            with open(self.xml_filepath, "r") as f:
-                self.xml_raw = f.read()
-        except Exception as e:
-            raise Exception(f"Failed to read the device XML file {self.xml_filepath}: {e}")
-        self.xml = ElementTree.parse(self.xml_filepath)
+        self.read_xml()
     
         # check XML schema
         # TODO: check all the schemas
@@ -131,6 +124,16 @@ class Device:
         # init
         self.firmware_updates = None
         self.app_updates = None
+
+    def read_xml(self) -> None:
+        if not os.path.exists(self.xml_filepath):
+            raise FileNotFoundError(f"Device XML file not found: {self.xml_filepath}")
+        try:
+            with open(self.xml_filepath, "r") as f:
+                self.xml_raw = f.read()
+        except Exception as e:
+            raise Exception(f"Failed to read the device XML file {self.xml_filepath}: {e}")
+        self.xml = ElementTree.parse(self.xml_filepath)
 
     def get_firmware_updates(self, force_reload: bool = False) -> list:
         if self.firmware_updates is not None and not force_reload:
@@ -432,8 +435,10 @@ class Device:
         # update the xml file
         try:
             app_xml = app.parse_xml()
-            print ("[WARNING] The Application is installed but the XML file is not updated: this feature is not implemented yet.")
-            # TODO update the xml file
+            new_xml_raw = self.xml_raw.replace("</Apps>", f"{app_xml}</Apps>")
+            with open(self.xml_filepath, "w") as f:
+                f.write(new_xml_raw)
+            self.read_xml()
         except Exception as e:
             raise Exception(f"Failed to update the device XML file: {e}")
 
