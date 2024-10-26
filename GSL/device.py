@@ -193,9 +193,9 @@ class Device:
                             md5=update_json["Url"]["Md5"],
                             size=update_json["Url"]["Size"],
                             # is_restart_required=update_json["IsRestartRequired"],
-                            # part_number=update_json["PartNumber"],
-                            # major=update_major,
-                            # minor=update_minor,
+                            part_number=update_json["PartNumber"],
+                            major=update_major,
+                            minor=update_minor,
                             # is_primary_firmware=update_json["IsPrimaryFirmware"],
                             # locale=update_json["Locale"],
                             # change_severity=update_json["ChangeSeverity"],
@@ -307,6 +307,17 @@ class Device:
         if names is not None and isinstance(names, str):
             names = [names]
 
+        # XML file update function
+        def __update_xml(part_number: str, major: int, minor: int) -> None:
+            splitted_xml = self.xml_raw.split('<UpdateFile>')
+            splitted_app_id = [i for i in range(len(splitted_xml)) if f"<PartNumber>{part_number}</PartNumber>" in splitted_xml[i]]
+            if len(splitted_app_id) != 1:
+                raise Exception(f"Failed to find the application in the XML file during the update of {part_number}")
+            splitted_xml[splitted_app_id[0]] = re.sub(r'<Major>\d+</Major><Minor>\d+</Minor>', f'<Major>{major}</Major><Minor>{minor}</Minor>', splitted_xml[splitted_app_id[0]])
+            self.xml_raw = '<UpdateFile>'.join(splitted_xml)
+            with open(self.xml_filepath, "w") as f:
+                f.write(self.xml_raw)
+
         # by name
         if names is not None:
             updates_name = self.get_firmwares_updates_name(force_reload=False)
@@ -320,6 +331,7 @@ class Device:
                 if update.name in names:
                     paths.append(self.firmwares_updates.pop(id).process(self.device_rootpath))
                     ids_torm.append(id)
+                    __update_xml(update.part_number, update.major, update.minor)
             for id in ids_torm:
                 self.apps_updates.pop(id)
 
@@ -329,16 +341,19 @@ class Device:
             for id in ids:
                 if id >= max_id:
                     raise Exception(f"Invalid firmware update id: {id}")
-                paths.append(self.firmwares_updates.pop(id).process(self.device_rootpath))
+                update = self.firmwares_updates.pop(id)
+                paths.append(update.process(self.device_rootpath))
+                __update_xml(update.part_number, update.major, update.minor)
 
         # all
         if ids is None and names is None:
             for update in self.get_firmwares_updates(force_reload=False):
                 paths.append(update.process(self.device_rootpath))
+                __update_xml(update.part_number, update.major, update.minor)
             self.firmwares_updates = []
 
-        print ("[WARNING] The firmwares' updates have been processed but the XML file has not been updated: this feature is not implemented yet.")
-        # TODO update the xml file
+        # update self as the xml file changed
+        self.read_xml()
 
         return paths
 
@@ -402,7 +417,7 @@ class Device:
                 __update_xml(update.app_guid, update.version_int)
             self.apps_updates = []
 
-        # update self has the xml file changed
+        # update self as the xml file changed
         self.read_xml()
 
         return paths
