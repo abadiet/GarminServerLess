@@ -265,7 +265,7 @@ class Device:
                             name=update_json["name"],
                             # type=app_type,
                             size=update_json["size"],
-                            # version_int=update_json["latestInternalVersionNumber"],
+                            version_int=update_json["latestInternalVersionNumber"],
                             # version_name=update_json["latestVersionName"],
                             # has_permissions_changed=update_json["permissionsChanged"],
                             # permissions=[AppUpdate.Permission.get(permission_str) for permission_str in update_json["permissions"]],
@@ -357,6 +357,17 @@ class Device:
         if names is not None and isinstance(names, str):
             names = [names]
 
+        # XML file update function
+        def __update_xml(app_guid: str, version_int: int) -> None:
+            splitted_xml = self.xml_raw.split('<App>')
+            splitted_app_id = [i for i in range(len(splitted_xml)) if f"<StoreId>{app_guid}</StoreId>" in splitted_xml[i]]
+            if len(splitted_app_id) != 1:
+                raise Exception(f"Failed to find the application in the XML file during the update of {app_guid}")
+            splitted_xml[splitted_app_id[0]] = re.sub(r'<Version>\d+</Version>', f'<Version>{version_int}</Version>', splitted_xml[splitted_app_id[0]])
+            self.xml_raw = '<App>'.join(splitted_xml)
+            with open(self.xml_filepath, "w") as f:
+                f.write(self.xml_raw)
+
         # by name
         if names is not None:
             updates_name = self.get_apps_updates_name(session_cookie=session_cookie, force_reload=False)
@@ -370,6 +381,7 @@ class Device:
                 if update.name in names:
                     paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
                     ids_torm.append(id)
+                    self.xml_raw = update_xml(self.xml_raw, update.app_guid, update.version_int)
             for id in ids_torm:
                 self.apps_updates.pop(id)
 
@@ -379,16 +391,19 @@ class Device:
             for id in ids:
                 if id >= max_id:
                     raise Exception(f"Invalid application update id: {id}")
-                paths.append(self.apps_updates.pop(id).process(self.device_rootpath, self.url_name, session_cookie))
+                update = self.apps_updates.pop(id)
+                paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
+                __update_xml(update.app_guid, update.version_int)
 
         # all
         if ids is None and names is None:
             for update in self.get_apps_updates(session_cookie=session_cookie, force_reload=False):
                 paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
+                __update_xml(update.app_guid, update.version_int)
             self.apps_updates = []
 
-        print ("[WARNING] The applications' updates have been processed but the XML file has not been updated: this feature is not implemented yet.")
-        # TODO update the xml file
+        # update self has the xml file changed
+        self.read_xml()
 
         return paths
 
