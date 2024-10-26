@@ -298,8 +298,10 @@ class Device:
         # Reload if forced
         if force_reload:
             self.get_firmwares_updates(force_reload=True)
-        
-        # convert the inputs to lists
+
+        # check the inputs
+        if ids is not None and names is not None:
+            raise Exception("Either ids or names can be provided, not both")
         if ids is not None and isinstance(ids, int):
             ids = [ids]
         if names is not None and isinstance(names, str):
@@ -313,9 +315,13 @@ class Device:
                 if name not in updates_name:
                     raise Exception(f"Invalid firmware update name: {name}")
             # look for the updates in the firmware updates list
+            ids_torm = []
             for id, update in enumerate(self.get_firmwares_updates(force_reload=False)):
                 if update.name in names:
                     paths.append(self.firmwares_updates.pop(id).process(self.device_rootpath))
+                    ids_torm.append(id)
+            for id in ids_torm:
+                self.apps_updates.pop(id)
 
         # by id
         if ids is not None:
@@ -342,8 +348,10 @@ class Device:
         # Reload if forced
         if force_reload:
             self.get_apps_updates(session_cookie=session_cookie, force_reload=True)
-        
-        # convert the inputs to lists
+
+        # check the inputs
+        if ids is not None and names is not None:
+            raise Exception("Either ids or names can be provided, not both")
         if ids is not None and isinstance(ids, int):
             ids = [ids]
         if names is not None and isinstance(names, str):
@@ -357,9 +365,13 @@ class Device:
                 if name not in updates_name:
                     raise Exception(f"Invalid application update name: {name}")
             # look for the updates in the apps updates list
+            ids_torm = []
             for id, update in enumerate(self.get_apps_updates(session_cookie=session_cookie, force_reload=False)):
                 if update.name in names:
-                    paths.append(self.apps_updates.pop(id).process(self.device_rootpath, self.url_name, session_cookie))
+                    paths.append(update.process(self.device_rootpath, self.url_name, session_cookie))
+                    ids_torm.append(id)
+            for id in ids_torm:
+                self.apps_updates.pop(id)
 
         # by id
         if ids is not None:
@@ -387,7 +399,9 @@ class Device:
         if force_reload:
             self.get_updates(session_cookie=session_cookie, force_reload=True)
 
-        # convert the inputs to lists
+        # check the inputs
+        if ids is not None and names is not None:
+            raise Exception("Either ids or names can be provided, not both")
         if ids is not None and isinstance(ids, int):
             ids = [ids]
         if names is not None and isinstance(names, str):
