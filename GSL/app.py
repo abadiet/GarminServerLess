@@ -1,6 +1,5 @@
 from .ciq import CIQ
 from enum import Enum
-import xml.etree.ElementTree as ElementTree
 
 
 class App:
