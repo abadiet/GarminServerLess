@@ -2,7 +2,7 @@ from .app import App
 from .update import FirmwareUpdate, AppUpdate, Update
 from .filesystem import Datatype
 import requests
-import xml.etree.ElementTree as ElementTree #TODO: no longer use ET
+import xml.etree.ElementTree as ElementTree
 import os
 import re
 
@@ -61,9 +61,10 @@ class Device:
         self.read_xml()
     
         # check XML schema
-        # TODO: check all the schemas
-        if self.xml.getroot().tag != "{http://www.garmin.com/xmlschemas/GarminDevice/v2}Device":
-            raise NotImplementedError("Unknown XML schema: please report this issue on the GitHub repository to add support for this schema (https://github.com/abadiet/GarminServerLess)")
+        namespace = [elem for _, elem in ElementTree.iterparse(self.xml_filepath, events=['start-ns'])]
+        target_ns = [('', 'http://www.garmin.com/xmlschemas/GarminDevice/v2'), ('xsi', 'http://www.w3.org/2001/XMLSchema-instance'), ('', 'http://www.garmin.com/xmlschemas/IqExt/v1')]
+        if namespace != target_ns:
+            raise NotImplementedError("Unknown XML schema: please report this issue on the GitHub repository to add support for this schema (https://github.com/abadiet/GarminServerLess). Your schema is: {namespace}")
 
         # parse XML
         try:
