@@ -140,6 +140,13 @@ class Device:
         if self.firmwares_updates is not None and not force_reload:
             return self.firmwares_updates
 
+        # edit the xml to keep privacy as it is sent to Garmin servers
+        xml = self.xml_raw
+        xml = re.sub(r"<Model>.*?</Model>", "", xml)
+        xml = re.sub(r"<Id>.*?</Id>", "<Id>9999999999</Id>", xml)   # Warning, having a fake Id can change the behavior of the Garmin servers, at least for the "AccessLevel" field  
+        xml = re.sub(r"<Extensions>.*?</Extensions>", "", xml)
+        xml = re.sub(r"<DataType>.*?</DataType>", "", xml)
+
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -151,7 +158,7 @@ class Device:
                 # "OperatingSystemType": "",
                 # "OperatingSystemVersion": ""
             },
-            "GarminDeviceXml": self.xml_raw,        # TODO: use only part of the xml to keep privacy
+            "GarminDeviceXml": xml,
             "IsUserInteractive": False
         }
         resp = requests.post("https://omt.garmin.com/Rce/ProtobufApi/SoftwareUpdateService/GetAllUnitSoftwareUpdates", headers=headers, json=json)
