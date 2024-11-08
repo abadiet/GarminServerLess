@@ -7,10 +7,22 @@ class App:
         pass
 
 
+
+
 class App:
+    """
+    A class to represent a Garmin application.
+
+    Attributes:
+        _settings_datatype_key (str): A constant datatype key for the device XML.
+    """
+
     _settings_datatype_key = "IQAppsSettingsFile"
 
     class Type(Enum):
+        """
+        An enumeration to represent the type of the application.
+        """
 
         Unknown = 0
         WatchFace = 1
@@ -22,6 +34,16 @@ class App:
 
         @staticmethod
         def get(type_str: str) -> App.Type:
+            """
+            Get the App.Type from a string.
+
+            Parameters:
+                type_str (str): The string to convert to App.Type.
+
+            Returns:
+                type (App.Type): The App.Type corresponding to the string.
+            """
+
             match type_str:
                 case "unknown":
                     return App.Type.Unknown
@@ -42,6 +64,16 @@ class App:
 
         @staticmethod
         def get_datatype_key(type: App.Type) -> str:
+            """
+            Get the datatype key for the device XML.
+            
+            Parameters:
+                type (App.Type): The type of the application.
+            
+            Returns:
+                key (str): The datatype key for the device XML.
+            """
+
             match type:
                 case App.Type.WatchFace:
                     return "IQWatchFaces"
@@ -72,6 +104,23 @@ class App:
             name: str = None,
             force_load_info: bool = False
         ):
+        """
+        Initialize the App object.
+
+        Args:
+            ciq_url (str): The URL of the Garmin Connect IQ app. Necessary if ciq_guid is not provided.
+            ciq_guid (str): The GUID of the Garmin Connect IQ app. Necessary if ciq_url is not provided.
+            app_guid (str): The GUID of the app.
+            type (App.Type): The type of the app.
+            version_int (int): The internal version of the app.
+            version_guid (int): The GUID of the version of the app.
+            compatible_devices_ids (int): The IDs of the compatible devices.
+            has_settings (int): The availability of settings.
+            filename (str): The name of the file.
+            name (str): The name of the app.
+            force_load_info (bool): Whether to load the information from Garmin servers.
+        """
+
         if ciq_url is not None:
             ciq_guid = CIQ.get_app_guid(ciq_url)
         self.guid = ciq_guid
@@ -87,6 +136,10 @@ class App:
             self._load_info_latest()
 
     def _load_info_latest(self) -> None:
+        """
+        Load the information from Garmin servers.
+        """
+
         info = CIQ.get_app_info(self.guid)
         version_int = info['latestInternalVersion']
         compatible_devices_ids = info['compatibleDeviceTypeIds']
@@ -111,6 +164,17 @@ class App:
 
 
     def download(self, device_url_name: str, output_path: str = "app.PRG", session_cookie: str = None) -> None:
+        """
+        Downloads the app from the specified device URL and saves it to the given output path.
+
+        Args:
+            device_url_name (str): The URL name of the device from which to download the app.
+            output_path (str): The path where the downloaded app will be saved. Defaults to *app.PRG*.
+            session_cookie (str): The session cookie for authentication. Required if version_guid is not set.
+        Raises:
+            Exception: If session_cookie is not provided and version_guid is None.
+        """
+
         if self.version_guid is None:
             if session_cookie is None:
                 raise Exception("Session cookie is required to download the app")
@@ -118,11 +182,30 @@ class App:
         CIQ.download_app(self.guid, self.version_guid, device_url_name, output_path)
 
     def download_settings(self, device_part_number: str, output_path: str = 'settings.SET', locale: str = 'en-us') -> None:
+        """
+        Downloads the settings for a specific device and saves them to a file.
+
+        Args:
+            device_part_number (str): The part number of the device for which to download settings.
+            output_path (str): The path where the settings file will be saved. Defaults to *settings.SET*.
+            locale (str): The locale for the settings. Defaults to *en-us*.
+
+        Raises:
+            Exception: If the server returns an error.
+        """
+
         if self.version_int is None or self.has_settings is None or self.compatible_devices_ids is None:
             self._load_info()
         CIQ.download_app_settings(self.guid, self.version_int, device_part_number, locale, output_path)
 
     def parse_xml(self) -> str:
+        """
+        Parses the application details into an XML string.
+
+        Returns:
+            xml (str): An XML string representing the application details.
+        """
+
         match self.type:
             case App.Type.WatchFace:
                 app_type = "watchface"

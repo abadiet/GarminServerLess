@@ -8,12 +8,28 @@ import re
 
 
 class Device:
+    """
+    A class to represent a Garmin device.
+
+    Attributes:
+        _types (list): A list of dictionaries containing the device types information. Should be accessed using `get_devices_info()`.
+        _names_idx (dict): A dictionary mapping the device names to their index in the _types list.
+        _part_numbers_idx (dict): A dictionary mapping the device part numbers to their index in the _types list.
+    """
+
     _types = None
     _names_idx = dict()
     _part_numbers_idx = dict()
 
     @staticmethod
     def _load_devices() -> None:
+        """
+        Loads device types from the Garmin servers.
+
+        Raises:
+            Exception: If the GET request to the Garmin API fails.
+        """
+
         resp = requests.get("https://apps.garmin.com/api/appsLibraryExternalServices/api/asw/deviceTypes")
         if resp.status_code != 200:
             raise Exception(f"Failed to get the device types {resp.url}: {resp.text}")
@@ -25,24 +41,61 @@ class Device:
 
     @staticmethod
     def get_devices_info() -> list:
+        """
+        Retrieve information about all device types.
+
+        Returns:
+            types (list): A list containing information about all device types.
+        """
+
         if Device._types is None:
             Device._load_devices()
         return Device._types
 
     @staticmethod
     def get_devices_names() -> list:
+        """
+        Retrieve the names of all devices.
+
+        Returns:
+            names (list): A list containing the names of all devices.
+        """
+
         if Device._types is None:
             Device._load_devices()
         return list(Device._names_idx.keys())
 
     @staticmethod
     def get_devices_part_numbers() -> list:
+        """
+        Retrieve a list of device part numbers.
+
+        Returns:
+            part_numbers (list): A list of device part numbers.
+        """
+
         if Device._types is None:
             Device._load_devices()
         return list(Device._part_numbers_idx.keys())
 
     @staticmethod
     def get_device_info(name: str = None, part_number: str = None) -> dict:
+        """
+        Retrieve device information based on the provided device name or part number.
+
+        Args:
+            name (str): The name of the device. Required if part_number is not provided.
+            part_number (str): The part number of the device. Required if name is not provided.
+
+        Returns:
+            info (dict): A dictionary containing the device information.
+
+        Raises:
+            Exception: If neither `name` nor `part_number` is provided.
+            Exception: If the provided `name` is not valid.
+            Exception: If the provided `part_number` is not valid and the `name` is not provided.
+        """
+
         if name is not None:
             if name not in Device.get_devices_names():
                 raise Exception(f"Invalid device name: {name}")
@@ -54,6 +107,16 @@ class Device:
         raise Exception("Either device name or part number is required")
 
     def __init__(self, device_rootpath: str):
+        """
+        Initializes the Device object.
+
+        Args:
+            device_rootpath (str): The root path to the device directory.
+
+        Raises:
+            NotImplementedError: If the XML schema is unknown.
+            Exception: If there is an error parsing the device XML.
+        """
 
         # read XML file
         self.device_rootpath = device_rootpath
@@ -127,6 +190,14 @@ class Device:
         self.apps_updates = None
 
     def read_xml(self) -> None:
+        """
+        Reads the XML file specified by `self.xml_filepath` and parses its content.
+
+        Raises:
+            FileNotFoundError: If the XML file does not exist at `self.xml_filepath`.
+            Exception: If there is an error reading the XML file.
+        """
+
         if not os.path.exists(self.xml_filepath):
             raise FileNotFoundError(f"Device XML file not found: {self.xml_filepath}")
         try:
@@ -137,6 +208,22 @@ class Device:
         self.xml = ElementTree.parse(self.xml_filepath)
 
     def get_firmwares_updates(self, force_reload: bool = False) -> list:
+        """
+        Retrieves the firmware updates for the device. If the firmware updates are already cached and 
+        force_reload is not set to True, it returns the cached updates. Otherwise, it fetches the updates 
+        from the Garmin servers.
+
+        Args:
+            force_reload (bool): If set to True, forces reloading the firmware updates from the server 
+                                 even if they are already cached. Defaults to False.
+
+        Returns:
+            updates (list): A list of FirmwareUpdate objects representing the available firmware updates.
+
+        Raises:
+            Exception: If the request to the Garmin servers fails or if the response cannot be parsed.
+        """
+
         if self.firmwares_updates is not None and not force_reload:
             return self.firmwares_updates
 
@@ -221,6 +308,23 @@ class Device:
         return self.firmwares_updates
 
     def get_apps_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        """
+        Retrieves the list of available app updates for the device.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            force_reload (bool): If True, forces the reload of app updates even if they are already cached. Defaults to False.
+
+        Returns:
+            updates (list): A list of AppUpdate objects representing the available updates.
+
+        Raises:
+            Exception: If the session cookie is not provided.
+            Exception: If the request to the Garmin service fails.
+            Exception: If the response from the Garmin service cannot be parsed.
+            Exception: If there is an issue with the datatype associated with the application type.
+        """
+
         if self.apps_updates is not None and not force_reload:
             return self.apps_updates
 
@@ -287,19 +391,79 @@ class Device:
 
         return self.apps_updates
 
-    def get_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:    
+    def get_updates(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        """
+        Retrieve updates for firmwares and apps.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            force_reload (bool): If True, forces a reload of the updates. Defaults to False.
+        Returns:
+            updates (list): A list containing firmware and app updates.
+        """
+
         return self.get_firmwares_updates(force_reload) + self.get_apps_updates(session_cookie, force_reload)
 
     def get_firmwares_updates_name(self, force_reload: bool = False) -> list:
+        """
+        Retrieve the names of firmware updates.
+
+        Args:
+            force_reload (bool): If True, forces a reload of the firmware updates. Defaults to False.
+
+        Returns:
+            names (list): A list of names of the firmware updates.
+        """
+
         return [update.name for update in self.get_firmwares_updates(force_reload)]
 
     def get_apps_updates_name(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        """
+        Retrieve the names of application updates.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            force_reload (bool): If True, forces a reload of the updates. Defaults to False.
+
+        Returns:
+            names (list): A list of names of the application updates.
+        """
+
         return [update.name for update in self.get_apps_updates(session_cookie, force_reload)]
 
     def get_updates_name(self, session_cookie: str = None, force_reload: bool = False) -> list:
+        """
+        Retrieve the names of updates.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            force_reload (bool): If True, forces a reload of updates. Defaults to False.
+
+        Returns:
+            names (list): A list of update names.
+        """
+
         return [update.name for update in self.get_updates(session_cookie, force_reload)]
 
     def update_firmwares(self, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        """
+        Update the firmware of the device based on provided IDs or names. If neither IDs nor names are provided, all firmware updates are processed.
+
+        Args:
+            ids (list | int): A list of firmware update IDs or a single ID to update. Required if names is not provided.
+            names (list | str): A list of firmware update names or a single name to update. Required if ids is not provided.
+            force_reload (bool): If True, forces a reload of firmware updates before applying updates. Defaults to False.
+
+        Returns:
+            paths (list): A list of paths where the updated firmware files are stored.
+
+        Raises:
+            Exception: If both ids and names are provided.
+            Exception: If an invalid firmware update name is provided.
+            Exception: If an invalid firmware update ID is provided.
+            Exception: If the application cannot be found in the XML file during the update.
+        """
+
         paths = []
 
         # Reload if forced
@@ -365,6 +529,25 @@ class Device:
         return paths
 
     def update_apps(self, session_cookie: str, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        """
+        Update applications on the device based on provided IDs or names.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            ids (list | int): A list of application IDs or a single application ID to update. Required if names is not provided.
+            names (list | str): A list of application names or a single application name to update. Required if ids is not provided.
+            force_reload (bool): If True, forces a reload of the application updates. Defaults to False
+
+        Returns:
+            paths (list): A list of paths where the updated applications are stored.
+
+        Raises:
+            Exception: If both ids and names are provided.
+            Exception: If an invalid application update name is provided.
+            Exception: If an invalid application update ID is provided.
+            Exception: If the application cannot be found in the XML file during the update.
+        """
+
         paths = []
 
         # Reload if forced
@@ -430,6 +613,22 @@ class Device:
         return paths
 
     def update(self, session_cookie: str, ids: list | int = None, names: list | str = None, force_reload: bool = False) -> list:
+        """
+        Update the device with the specified updates.
+
+        Args:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            ids (list | int): A list of IDs or a single ID of the updates to be applied. Required if names is not provided.
+            names (list | str): A list of names or a single name of the updates to be applied. Required if ids is not provided.
+            force_reload (bool): If True, forces a reload of updates. Defaults to False.
+
+        Returns:
+            paths (list): A list of paths to the updated firmware or app files.
+
+        Raises:
+            Exception: If both `ids` and `names` are provided.
+        """
+
         paths = []
 
         # Reload if forced
@@ -467,6 +666,25 @@ class Device:
         return paths
 
     def install(self, session_cookie: str, app: App = None, locale: str = 'en-us', **kwargs) -> None:
+        """
+        Install an application on the device.
+
+        Parameters:
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+            app (App): The application to be installed. If not provided, it will be loaded from kwargs.
+            locale (str): The locale for the application settings. Defaults to 'en-us'.
+            **kwargs: Additional keyword arguments to initialize the App if not provided.
+
+        Raises:
+            Exception: If the maximum number of applications is reached.
+            Exception: If the application is already installed.
+            Exception: If the file extension or transfer direction is not defined in the XML file.
+            Exception: If the transfer direction is output from the unit.
+            Exception: If the application or settings download fails.
+            Exception: If updating the device XML file fails.
+        """
+
+        # TODO: check if the app is compatible with the device
 
         # check if an application can be installed
         if len(self.apps) >= self.max_nb_apps:

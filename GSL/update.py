@@ -13,8 +13,15 @@ class Update:
 
 
 class Update:
+    """
+    The Update class represents an abstract base class for different types of updates.
+    """
 
     class Type(Enum):
+        """
+        Enum representing different types of updates.
+        """
+
         # Where is "HuntingAudio"? I am not sure of the types
         PrimaryFirmware = 0
         Firmware = 1
@@ -30,6 +37,19 @@ class Update:
 
         @staticmethod
         def get(type_str: str) -> Update.Type:
+            """
+            Converts a string representation of an update type to its corresponding Update.Type enum.
+
+            Args:
+                type_str (str): The string representation of the update type.
+
+            Returns:
+                type (Update.Type): The corresponding Update.Type enum value.
+
+            Raises:
+                Exception: If the provided type_str does not match any known update type.
+            """
+
             match type_str:
                 case "PrimaryFirmware":
                     return Update.Type.PrimaryFirmware
@@ -57,9 +77,23 @@ class Update:
                     raise Exception(f"Invalid update type: {type_str}")
 
     def __init__(self, **kwargs):
+        """
+        This is an abstract class and cannot be instantiated directly.
+
+        Raises:
+            Exception: Always raises an exception indicating that this is an abstract class.
+        """
+
         raise Exception("This is an abstract class")
 
     def process(self, **kwargs) -> str:
+        """
+        This is an abstract method that should be implemented by subclasses.
+
+        Raises:
+            Exception: Always raises an exception indicating that this method is abstract.
+        """
+
         raise Exception("This is an abstract method")
 
 
@@ -71,8 +105,15 @@ class FirmwareUpdate(Update):
 
 
 class FirmwareUpdate(Update):
+    """
+    A class to represent a firmware update.
+    """
 
     class ChangeSeverity(Enum):
+        """
+        Enum representing the severity of the update.
+        """
+
         UNSPECIFIED = 0
         CRITICAL = 1
         RECOMMENDED = 2
@@ -100,6 +141,34 @@ class FirmwareUpdate(Update):
             type: Update.Type = None,
             installation_order: int = None
         ):
+        """
+        Initialize a FirmwareUpdate object.
+
+        Args:
+            url_is_relative (bool): Indicates if the URL is relative.
+            url (str): The URL for the update.
+            unit_filepath (str): The path on the unit where to save the update.
+            changes (list): A list of changes.
+            display_name (str): The display name of the update.
+            eula_url (str): The URL for the EULA.
+            is_recommended (bool): Indicates if the update is recommended.
+            md5 (str): The MD5 checksum of the update.
+            size (int): The size of the update.
+            is_restart_required (bool): Indicates if a restart is required.
+            part_number (str): The part number of the update.
+            major (int): The major version number.
+            minor (int): The minor version number.
+            is_primary_firmware (bool): Indicates if this is for the primary firmware.
+            locale (str): The locale for the update.
+            change_severity (FirmwareUpdate.ChangeSeverity): The severity of the change.
+            is_reinstall (bool): Indicates if the update should be reinstalled.
+            type (Update.Type): The type of the update.
+            installation_order (int): The installation order of the update.
+
+        Raises:
+            Exception: If the update type is not PrimaryFirmware or Firmware.
+        """
+
         self.changes = changes
         self.name = display_name
         self.eula_url = eula_url
@@ -124,6 +193,22 @@ class FirmwareUpdate(Update):
 
 
     def process(self, device_rootpath: str) -> str:
+        """
+        Downloads and verifies a firmware update, then saves it to the specified device root path.
+
+        Args:
+            device_rootpath (str): The root path of the device.
+
+        Returns:
+            path (str): The file path where the firmware update was saved.
+
+        Raises:
+            Exception: If the URL is relative.
+            Exception: If the firmware update download fails (non-200 status code).
+            Exception: If the downloaded firmware size does not match the expected size.
+            Exception: If the downloaded firmware MD5 checksum does not match the expected checksum.
+        """
+
         if self.url_is_relative:
             raise Exception("Relative URLs are not supported for firmware updates")
         resp = requests.get(self.url)
@@ -137,8 +222,6 @@ class FirmwareUpdate(Update):
         with open(filepath, "wb") as f:
             f.write(resp.content)
 
-        # TODO: Update the xml file
-
         return filepath
 
 
@@ -148,8 +231,14 @@ class AppUpdate(Update):
 
 
 class AppUpdate(Update):
+    """
+    A class to represent an application update.
+    """
 
     class Permission(Enum):
+        """
+        Enum representing the permissions of the update.
+        """
 
         NonePermision = 0
         Positioning = 1
@@ -173,6 +262,19 @@ class AppUpdate(Update):
 
         @staticmethod
         def get(permission_str: str) -> AppUpdate.Permission:
+            """
+            Converts a permission string to the corresponding AppUpdate.Permission enum value.
+
+            Args:
+                permission_str (str): The permission string to convert.
+
+            Returns:
+                permission (AppUpdate.Permission): The corresponding AppUpdate.Permission enum value.
+
+            Raises:
+                Exception: If the permission string does not match any known permission.
+            """
+
             match permission_str:
                 case "None":
                     return AppUpdate.Permission.NonePermision
@@ -231,6 +333,25 @@ class AppUpdate(Update):
             min_version_firmware: str = None,
             max_version_firmware: str = None
         ):
+        """
+        Initialize the application update object.
+
+        Args:
+            app_guid (str): The unique identifier for the app.
+            unit_filepath (str): The file path on the unit where to save the update.
+            developer_name (str): The name of the developer.
+            name (str): The name of the app.
+            type (App.Type): The type of the app.
+            size (int): The size of the app.
+            version_int (int): The integer representation of the app version.
+            version_name (str): The name of the app version.
+            has_permissions_changed (bool): Indicates if the permissions have changed.
+            permissions (list): The list of permissions required by the app.
+            has_settings (bool): Indicates if the app has settings.
+            min_version_firmware (str): The minimum firmware version required.
+            max_version_firmware (str): The maximum firmware version supported.
+        """
+
         self.app_guid = app_guid
         self.developer_name = developer_name
         self.name = name
@@ -247,8 +368,23 @@ class AppUpdate(Update):
         self.update_type = Update.Type.Application
 
     def process(self, device_rootpath, device_url_name, session_cookie) -> str:
+        """
+        Processes the application update.
+
+        Args:
+            device_rootpath (str): The root path of the device.
+            device_url_name (str): The URL name of the device.
+            session_cookie (str): The cookie named *session* when logged in to apps.garmin.com. Can be any Garmin account, even a junk one.
+
+        Returns:
+            path (str): The file path where the application was stored on the device.
+
+        Raises:
+            Exception: If the application download fails due to size mismatch or if writing to the device fails.
+        """
+
         # retrieve the version guid
-        version_guid = CIQ.get_last_app_version_guid(self.app_guid, session_cookie) # TODO: we want the version_int intead of the last version
+        version_guid = CIQ.get_last_app_version_guid(self.app_guid, session_cookie) # TODO: we want the version_int instead of the last version
 
         # download the app to a temporary file
         tmp = tempfile.NamedTemporaryFile()
@@ -266,7 +402,5 @@ class AppUpdate(Update):
         except Exception as e:
             raise Exception(f"Failed to write the application {self.name} to the device: {e}")
         tmp.close()
-
-        # TODO: Update the xml file
 
         return filepath
